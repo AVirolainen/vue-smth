@@ -36,12 +36,8 @@ export const subscribeToTicker = (ticker, callback) => {
   tickersHandler.set(ticker, [...existingSubscribe, callback]);
 };
 
-export const unsubscribeToTicker = (ticker, callback) => {
-  const existingSubscribe = tickersHandler.get(ticker) || [];
-  tickersHandler.set(
-    ticker,
-    existingSubscribe.filter((fn) => fn != callback)
-  );
+export const unsubscribeToTicker = (ticker) => {
+  tickersHandler.delete(ticker)
 };
 
 setInterval(loadTickers);

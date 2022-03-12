@@ -203,7 +203,7 @@
 </template>
 
 <script>
-import { loadAllTickers, subscribeToTicker } from "./api";
+import { loadAllTickers, subscribeToTicker, unsubscribeToTicker } from "./api";
 
 export default {
   name: "App",
@@ -244,10 +244,11 @@ export default {
     if (tickersData) {
       this.tickerList = JSON.parse(tickersData);
       this.tickerList.forEach((ticker) => {
-        subscribeToTicker(ticker.name, () => {});
+        subscribeToTicker(ticker.name, (newPrice) => {
+          this.updateTicker(ticker.name, newPrice);
+        });
       });
     }
-    setInterval(this.updateTickers, 5000);
   },
   computed: {
     startIndex() {
@@ -288,6 +289,13 @@ export default {
   },
 
   methods: {
+    updateTicker(tickerName, price) {
+      return this.tickerList
+        .filter((t) => t.name === tickerName)
+        .forEach((t) => {
+          t.price = price;
+        });
+    },
     formatPrice(price) {
       if (price == "-") {
         return price;
@@ -302,7 +310,9 @@ export default {
       };
       if (!this.isAddedTicker) {
         this.tickerList = [...this.tickerList, newTicker];
-        subscribeToTicker(newTicker.name, () => {});
+        subscribeToTicker(newTicker.name, (newPrice) => {
+          this.updateTicker(newTicker.name, newPrice);
+        });
         this.filter = "";
         this.ticker = "";
       }
@@ -314,6 +324,7 @@ export default {
       if (this.selectedTicker === tickerToRemove) {
         this.selectedTicker = null;
       }
+      unsubscribeToTicker(tickerToRemove.name);
     },
     select(selected) {
       this.selectedTicker = selected;
@@ -330,17 +341,6 @@ export default {
         : false;
       this.isAddedTicker = flag;
       return flag;
-    },
-    async updateTickers() {
-      // const loadedTickers = await loadTicker(
-      //   this.tickerList.map((elem) => elem.name)
-      // );
-
-      this.tickerList.forEach((ticker) => {
-        // const price = loadedTickers[ticker.name.toUpperCase()];
-        // ticker.price = price || "-";
-        ticker.price = "-";
-      });
     },
   },
   watch: {
