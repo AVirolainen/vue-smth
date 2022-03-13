@@ -124,6 +124,7 @@
             @click="select(t)"
             :class="{
               'border-4': selectedTicker == t,
+              'bg-red-100': t.price == '-',
             }"
             class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
           >
@@ -162,7 +163,10 @@
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
           {{ selectedTicker.name }} - USD
         </h3>
-        <div class="flex items-end border-gray-600 border-b border-l h-64">
+        <div
+          class="flex items-end border-gray-600 border-b border-l h-64"
+          ref="graph"
+        >
           <div
             v-for="(bar, index) in normalizedGraph"
             :key="index"
@@ -219,9 +223,15 @@ export default {
       isAddedTicker: false,
       page: 1,
       filter: "",
+      maxGraphElements: 1,
     };
   },
-
+  mounted: function () {
+    window.addEventListener("resize", this.calculateMaxGraphElements);
+  },
+  beforeUnmount: function () {
+    window.removeEventListener("resize", this.calculateMaxGraphElements);
+  },
   created: async function () {
     const windowData = Object.fromEntries(
       new URL(window.location).searchParams.entries()
@@ -249,6 +259,7 @@ export default {
         });
       });
     }
+    setInterval(this.updateTicker, 5000);
   },
   computed: {
     startIndex() {
@@ -289,10 +300,22 @@ export default {
   },
 
   methods: {
+    calculateMaxGraphElements() {
+      if (!this.$refs.graph) {
+        return;
+      }
+      this.maxGraphElements = this.$refs.graph.clientWidth / 38;
+    },
     updateTicker(tickerName, price) {
       return this.tickerList
         .filter((t) => t.name === tickerName)
         .forEach((t) => {
+          if (t === this.selectedTicker) {
+            this.graph.push(price);
+            while (this.graph.length > this.maxGraphElements) {
+              this.graph.shift();
+            }
+          }
           t.price = price;
         });
     },
@@ -352,6 +375,7 @@ export default {
     },
     selectedTicker() {
       this.graph = [];
+      this.$nextTick().then(this.calculateMaxGraphElements());
     },
     paginatedTickers() {
       if (this.paginatedTickers.length == 0 && this.page > 1) {
